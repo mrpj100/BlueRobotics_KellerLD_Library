@@ -37,20 +37,22 @@ THE SOFTWARE.
 #include <Wire.h>
 #include "KellerLD.h"
 
-// set default I2C pins for the OpenLog Artemis QWIIC port
+// set default I2C pins for the OpenLog Artemis Qwiic port
 const byte PIN_QWIIC_SCL = 8;
 const byte PIN_QWIIC_SDA = 9;
 TwoWire qwiic(PIN_QWIIC_SDA,PIN_QWIIC_SCL); //Will use pads 8/9
+
+const byte PIN_QWIIC_POWER = 18; // enables 3.3V supply to Qwiic port
 
 KellerLD sensor;
 
 void setup() {
   Serial.begin(9600);
+
+  beginQwiic(); // 
   
   Serial.println("Starting");
   
-  qwiic.begin(); // start the I2C library
-
   sensor.begin(qwiic); // start the Keller sensor code and give it the right I2C port
   sensor.setFluidDensity(997); // kg/m^3 (freshwater, 1029 for seawater)
 
@@ -82,4 +84,49 @@ void loop() {
   Serial.println(" m above mean sea level");
 
   delay(1000);
+}
+
+void beginQwiic()
+{
+  pinMode(PIN_QWIIC_POWER, OUTPUT);
+  pin_config(PinName(PIN_QWIIC_POWER), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
+  digitalWrite(PIN_QWIIC_POWER, HIGH); // for v10 openlog artemis board
+  qwiic.begin();
+  setQwiicPullups(6); // 6k pullups
+}
+
+void setQwiicPullups(uint32_t qwiicBusPullUps)
+{
+  //Change SCL and SDA pull-ups manually using pin_config
+  am_hal_gpio_pincfg_t sclPinCfg = g_AM_BSP_GPIO_IOM1_SCL;
+  am_hal_gpio_pincfg_t sdaPinCfg = g_AM_BSP_GPIO_IOM1_SDA;
+
+  if (qwiicBusPullUps == 0)
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_NONE; // No pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_NONE;
+  }
+  else if (qwiicBusPullUps == 1)
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_1_5K; // Use 1K5 pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_1_5K;
+  }
+  else if (qwiicBusPullUps == 6)
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_6K; // Use 6K pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_6K;
+  }
+  else if (qwiicBusPullUps == 12)
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_12K; // Use 12K pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_12K;
+  }
+  else
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_24K; // Use 24K pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_24K;
+  }
+
+  pin_config(PinName(PIN_QWIIC_SCL), sclPinCfg);
+  pin_config(PinName(PIN_QWIIC_SDA), sdaPinCfg);
 }
