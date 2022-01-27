@@ -15,7 +15,14 @@ KellerLD::KellerLD() {
 	fluidDensity = 1029;
 }
 
-void KellerLD::init() {
+bool KellerLD::begin(TwoWire &wirePort) {
+	return(init(wirePort));
+}
+
+bool KellerLD::init(TwoWire &wirePort) {
+
+	_i2cPort = &wirePort; // save the I2C port that we're using
+
 	// Request memory map information
 	cust_id0 = readMemoryMap(LD_CUST_ID0);
 	cust_id1 = readMemoryMap(LD_CUST_ID1);
@@ -24,6 +31,8 @@ void KellerLD::init() {
 	equipment = cust_id0 >> 10;
 	place = cust_id0 & 0b000000111111111;
 	file = cust_id1;
+
+	if (equipment > 62) return false; // check to see if the sensor initialises
 
 	uint16_t scaling0;
 	scaling0 = readMemoryMap(LD_SCALING0);
@@ -54,6 +63,8 @@ void KellerLD::init() {
 	uint32_t scaling34 = (uint32_t(readMemoryMap(LD_SCALING3)) << 16) | readMemoryMap(LD_SCALING4);
 
 	P_max = *reinterpret_cast<float*>(&scaling34);
+
+	return true; // return true (= successful initialisation) if we get this far
 }
 
 void KellerLD::setFluidDensity(float density) {
@@ -63,16 +74,16 @@ void KellerLD::setFluidDensity(float density) {
 void KellerLD::read() {
 	uint8_t status;
 
-	Wire.beginTransmission(LD_ADDR);
-	Wire.write(LD_REQUEST);
-	Wire.endTransmission();
+	_i2cPort->beginTransmission(LD_ADDR);
+	_i2cPort->write(LD_REQUEST);
+	_i2cPort->endTransmission();
 
 	delay(9); // Max conversion time per datasheet
 
- 	Wire.requestFrom(LD_ADDR,5);
-	status = Wire.read();
-	P = (Wire.read() << 8) | Wire.read();
-	uint16_t T = (Wire.read() << 8) | Wire.read();
+ 	_i2cPort->requestFrom(LD_ADDR,5);
+	status = _i2cPort->read();
+	P = (_i2cPort->read() << 8) | _i2cPort->read();
+	uint16_t T = (_i2cPort->read() << 8) | _i2cPort->read();
 	
 	P_bar = (float(P)-16384)*(P_max-P_min)/32768 + P_min + P_mode;
 	T_degc = ((T>>4)-24)*0.05-50;
@@ -81,15 +92,15 @@ void KellerLD::read() {
 uint16_t KellerLD::readMemoryMap(uint8_t mtp_address) {
 	uint8_t status;
 
-	Wire.beginTransmission(LD_ADDR);
-	Wire.write(mtp_address);
-	Wire.endTransmission();
+	_i2cPort->beginTransmission(LD_ADDR);
+	_i2cPort->write(mtp_address);
+	_i2cPort->endTransmission();
 
 	delay(1); // allow for response to come in
 
-	Wire.requestFrom(LD_ADDR,3);
-	status = Wire.read();
-	return ((Wire.read() << 8) | Wire.read());
+	_i2cPort->requestFrom(LD_ADDR,3);
+	status = _i2cPort->read();
+	return ((_i2cPort->read() << 8) | _i2cPort->read());
 }
 
 bool KellerLD::status() {

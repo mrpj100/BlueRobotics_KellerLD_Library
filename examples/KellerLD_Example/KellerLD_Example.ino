@@ -37,6 +37,11 @@ THE SOFTWARE.
 #include <Wire.h>
 #include "KellerLD.h"
 
+// set default I2C pins for the OpenLog Artemis QWIIC port
+const byte PIN_QWIIC_SCL = 8;
+const byte PIN_QWIIC_SDA = 9;
+TwoWire qwiic(PIN_QWIIC_SDA,PIN_QWIIC_SCL); //Will use pads 8/9
+
 KellerLD sensor;
 
 void setup() {
@@ -44,9 +49,9 @@ void setup() {
   
   Serial.println("Starting");
   
-  Wire.begin();
+  qwiic.begin(); // start the I2C library
 
-  sensor.init();
+  sensor.begin(qwiic); // start the Keller sensor code and give it the right I2C port
   sensor.setFluidDensity(997); // kg/m^3 (freshwater, 1029 for seawater)
 
   if (sensor.isInitialized()) {
