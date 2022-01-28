@@ -41,13 +41,15 @@ bool KellerLD::init(TwoWire &wirePort) {
 	year = scaling0 >> 11;
 	month = (scaling0 & 0b0000011110000000) >> 7;
 	day = (scaling0 & 0b0000000001111100) >> 2;
+
+	P_mode = 0;
 	
 	// handle P-mode pressure offset (to vacuum pressure)
-	float P_mode;
-	if (mode == 0) { 
+	
+	if (mode == (uint8_t)0) { 
 		// PA mode, Vented Gauge. Zero at atmospheric pressure
 		P_mode = 1.01325;
-	} else if (mode == 1) {
+	} else if (mode == (uint8_t)1) {
 		// PR mode, Sealed Gauge. Zero at 1.0 bar
 		P_mode = 1.0;
 	} else {
