@@ -32,7 +32,7 @@ bool KellerLD::init(TwoWire &wirePort) {
 	place = cust_id0 & 0b000000111111111;
 	file = cust_id1;
 
-	if (equipment > 62) return false; // check to see if the sensor initialises
+	if (equipment == 0) return false; // check to see if the sensor initialises
 
 	uint16_t scaling0;
 	scaling0 = readMemoryMap(LD_SCALING0);
@@ -106,7 +106,7 @@ uint16_t KellerLD::readMemoryMap(uint8_t mtp_address) {
 }
 
 bool KellerLD::status() {
-	if (equipment <= 62 ) {
+	if (equipment > 0 ) {
 		return true;
 	} else {
 		return false;
@@ -134,5 +134,5 @@ float KellerLD::altitude() {
 }
 
 bool KellerLD::isInitialized() {
-	return (cust_id0 >> 10) != 63; // If not connected, equipment code == 63
+	return (status());
 }
