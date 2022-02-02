@@ -56,6 +56,8 @@ bool KellerLD::init(TwoWire &wirePort) {
 		// PAA mode, Absolute. Zero at vacuum
 		// (or undefined mode)
 		P_mode = 0;
+
+	return true;
 	}
 
 	uint32_t scaling12 = (uint32_t(readMemoryMap(LD_SCALING1)) << 16) | readMemoryMap(LD_SCALING2);
